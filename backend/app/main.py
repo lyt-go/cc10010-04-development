@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.routers import ROUTERS
+from app.services.dag import DagService
 from app.store import store
 
 app = FastAPI(title="数据仓库ETL任务编排平台", version="1.0.0")
@@ -24,6 +25,9 @@ app.add_middleware(
 
 for module in ROUTERS:
     app.include_router(module.router)
+
+# 示例数据启动时补一次预检 / 发布，保证列表里立刻能看到「通过 / 阻断」两种结论。
+DagService().ensure_demo_publish()
 
 
 @app.get("/api/health")

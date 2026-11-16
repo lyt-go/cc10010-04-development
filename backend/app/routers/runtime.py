@@ -1,4 +1,4 @@
-"""运行实例接口：维护运行记录，覆盖启动作业、终止作业、标记成功等动作。"""
+"""运行实例接口：维护运行记录，并按编排图分区依赖快照生成失败传播清单。"""
 from __future__ import annotations
 
 from typing import Any
@@ -30,13 +30,11 @@ def list_entries(
     return PageResult(items=items, total=total, page=page, size=size)
 
 
-@router.get("/{entry_id}", response_model=dict)
-def get_entry(entry_id: int) -> dict:
-    """读取单条运行记录明细；不存在时给出可读的错误说明。"""
-    entry = service.get_entry(entry_id)
-    if entry is None:
-        raise HTTPException(status_code=404, detail=f"运行记录 {entry_id} 不存在或已归档")
-    return entry
+@router.get("/export")
+def export_entries() -> dict[str, Any]:
+    """导出运行实例清单：返回当前过滤条件下的全量数据。"""
+    items, total = service.list_entries(page=1, size=10000)
+    return {"module": "runtime", "total": total, "items": items}
 
 
 @router.post("", response_model=ActionResult)
@@ -46,6 +44,15 @@ def create_entry(payload: EntryPayload) -> ActionResult:
     if missing:
         return ActionResult(ok=False, message=f"缺少必填字段：{'、'.join(missing)}")
     return ActionResult(ok=True, message="运行记录已登记", entry=entry)
+
+
+@router.get("/{entry_id}", response_model=dict)
+def get_entry(entry_id: int) -> dict:
+    """读取单条运行记录明细；不存在时给出可读的错误说明。"""
+    entry = service.get_entry(entry_id)
+    if entry is None:
+        raise HTTPException(status_code=404, detail=f"运行记录 {entry_id} 不存在或已归档")
+    return entry
 
 
 @router.post("/{entry_id}/actions", response_model=ActionResult)
@@ -58,8 +65,29 @@ def run_action(entry_id: int, payload: EntryPayload) -> ActionResult:
     return ActionResult(ok=True, message=message, entry=entry)
 
 
-@router.get("/export")
-def export_entries() -> dict[str, Any]:
-    """导出运行实例清单：返回当前过滤条件下的全量数据。"""
-    items, total = service.list_entries(page=1, size=10000)
-    return {"module": "runtime", "total": total, "items": items}
+@router.post("/{entry_id}/propagation", response_model=ActionResult)
+def generate_propagation(entry_id: int, payload: EntryPayload | None = None) -> ActionResult:
+    """按编排图分区依赖快照生成失败传播清单；预检阻断时返回阻断原因并允许重试。"""
+    record, message, view = service.generate_propagation(
+        entry_id, payload.values if payload else {}
+    )
+    if record is None:
+        return ActionResult(ok=False, message=message, entry=view)
+    return ActionResult(ok=True, message=message, entry={**record, "视图": view})
+
+
+@router.get("/{entry_id}/propagation")
+def get_propagation(entry_id: int) -> dict[str, Any]:
+    """读取失败传播清单：状态实时跟随编排图预检结果，不留不可解释的空结果。"""
+    if service.get_entry(entry_id) is None:
+        raise HTTPException(status_code=404, detail=f"运行记录 {entry_id} 不存在或已归档")
+    return service.propagation_view(entry_id)
+
+
+@router.get("/{entry_id}/propagations")
+def list_propagations(entry_id: int) -> dict[str, Any]:
+    """失败传播清单的生成历史，包含阻断与异常记录及重试次数。"""
+    if service.get_entry(entry_id) is None:
+        raise HTTPException(status_code=404, detail=f"运行记录 {entry_id} 不存在或已归档")
+    items = service.list_propagations(entry_id)
+    return {"items": items, "total": len(items)}

@@ -33,3 +33,19 @@ body { margin: 0; background: #f6f8fb; color: #1f2937; }
 .link { border: none; background: none; color: var(--brand); cursor: pointer; padding: 0; }
 .page-foot { display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px; color: var(--muted); }
 .error-text { color: #b42318; }
+
+/* ===== 拓扑预检 / 失败传播面板 ===== */
+.badge { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 12px; border: 1px solid var(--border); }
+.badge-ok { background: #ecfdf3; border-color: #abefc6; color: #067647; }
+.badge-bad { background: #fef3f2; border-color: #fecdca; color: #b42318; }
+.badge-muted { background: #f2f4f7; color: var(--muted); }
+.panel { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; margin-top: 14px; }
+.panel-head { display: flex; justify-content: space-between; align-items: center; }
+.panel-head h3 { margin: 0; font-size: 15px; }
+.panel-sub { font-size: 14px; margin: 16px 0 8px; }
+.panel-desc { color: var(--muted); font-size: 12px; margin: 6px 0 10px; }
+.alert { background: #fef3f2; border: 1px solid #fecdca; border-radius: 6px; padding: 8px 12px; font-size: 13px; color: #912018; }
+.alert ul { margin: 6px 0; padding-left: 18px; }
+.alert .btn { margin-top: 4px; }
+.hint { color: var(--muted); font-size: 12px; margin-left: 8px; }
+.notice-text { color: #067647; }
